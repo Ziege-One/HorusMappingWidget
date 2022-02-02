@@ -529,6 +529,9 @@ end
 local function init()
 
 -- load configuration at boot and only refresh if GV(8,8) = 1
+  assert(loadScript(basePath.."mapsconfig.lua","c"))
+  collectgarbage()
+  collectgarbage()
   loadConfig()
   utils.initColors()
   -- zoom initialize
