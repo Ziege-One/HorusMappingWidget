@@ -111,6 +111,7 @@ local currentPage = 0
 local conf = {
   mapType = "sat_tiles",
   enableMapGrid = true,
+  enableFullscreen = true,
   mapWheelChannelId = nil, -- used as wheel emulator
   mapWheelChannelDelay = 20,
   mapTrailDots = 10,

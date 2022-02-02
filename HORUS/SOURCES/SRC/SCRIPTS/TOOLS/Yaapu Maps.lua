@@ -64,6 +64,7 @@ local menuItems = {
   {"map zoom level default value:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
   {"map zoom level min value:", 0, "MAPmZ", -2, -2, 17,nil,0,1 },
   {"map zoom level max value:", 0, "MAPMZ", 17, -2, 17,nil,0,1 },
+  {"map fullscreen:", 1, "MAFU", 1, { "yes", "no" }, { true, false } },
 }
 
 local menu  = {
@@ -210,6 +211,7 @@ local function applyConfigValues(conf)
   conf.mapWheelChannelDelay = getMenuItemByName(menuItems,"ZDMS")
 
   conf.enableMapGrid = getMenuItemByName(menuItems,"MAPG")
+  conf.enableFullscreen = getMenuItemByName(menuItems,"MAFU")
   conf.mapProvider = getMenuItemByName(menuItems,"MAPP")
 
   conf.headingSensor = getMenuItemByName(menuItems,"HDGT")

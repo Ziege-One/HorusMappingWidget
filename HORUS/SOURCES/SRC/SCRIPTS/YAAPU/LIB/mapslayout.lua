@@ -108,6 +108,9 @@ local estimatedHomeGps = {
   lon = nil
 }
 
+local row
+local column 
+
 local lastProcessCycle = getTime()
 local processCycle = 0
 
@@ -232,16 +235,16 @@ end
 local function loadAndCenterTiles(conf,tile_x,tile_y,offset_x,offset_y,width,level)
   -- determine if upper or lower center tile
   local yy = 2
-  if offset_y > 100/2 then
+  if offset_y > 100/2 and not conf.enableFullscreen then
     yy = 1
   end
-  for x=1,4
+  for x=1,column                                             
   do
-    for y=1,2
+    for y=1,row                                           
     do
-      local tile_path = tiles_to_path(conf, tile_x+x-2, tile_y+y-yy, level)
-      local idx = width*(y-1)+x
-      
+      local tile_path = tiles_to_path(conf, tile_x+x-column+2, tile_y+y-yy, level)	  
+      local idx = column*(y-1)+x
+	   
       if tiles[idx] == nil then
         tiles[idx] = tile_path
       else
@@ -273,11 +276,11 @@ local function loadAndCenterTiles(conf,tile_x,tile_y,offset_x,offset_y,width,lev
 end
 
 local function drawTiles(conf,drawLib,utils,width,xmin,xmax,ymin,ymax,color,level)
-  for x=1,4
+  for x=1,column
   do
-    for y=1,2
+    for y=1,row
     do
-      local idx = width*(y-1)+x
+      local idx = column*(y-1)+x
       if tiles[idx] ~= nil then
         lcd.drawBitmap(getTileBitmap(conf,tiles[idx]), xmin+(x-1)*100, ymin+(y-1)*100)
       end
@@ -285,22 +288,30 @@ local function drawTiles(conf,drawLib,utils,width,xmin,xmax,ymin,ymax,color,leve
   end
   if conf.enableMapGrid then
     -- draw grid
-    for x=1,4-1
+    for x=1,column-1
     do
       lcd.drawLine(xmin+x*100,ymin,xmin+x*100,ymax,DOTTED,color)
     end
     
-    for y=1,2-1
+    for y=1,row-1
     do
       lcd.drawLine(xmin,ymin+y*100,xmax,ymin+y*100,DOTTED,color)
     end
   end
   -- map overlay
-  lcd.drawBitmap(utils.getBitmap("maps_box_380x20"),5,ymin+2*100-20) --160x90  
-  -- draw 50m or 150ft line at max zoom
-  lcd.setColor(CUSTOM_COLOR,utils.colors.white)
-  lcd.drawLine(xmin+5,ymin+2*100-7,xmin+5+scaleLen,ymin+2*100-7,SOLID,CUSTOM_COLOR)
-  lcd.drawText(xmin+5,ymin+2*100-21,scaleLabel,SMLSIZE+CUSTOM_COLOR)
+  if conf.enableFullscreen then
+	lcd.drawBitmap(utils.getBitmap("maps_box_380x20"),50,265-20) --160x90  
+	-- draw 50m or 150ft line at max zoom
+	lcd.setColor(CUSTOM_COLOR,utils.colors.white)
+	lcd.drawLine(50,265-7,5+scaleLen,265-7,SOLID,CUSTOM_COLOR)
+	lcd.drawText(50,265-21,scaleLabel,SMLSIZE+CUSTOM_COLOR)
+  else
+	lcd.drawBitmap(utils.getBitmap("maps_box_380x20"),5,ymin+2*100-20) --160x90  
+	-- draw 50m or 150ft line at max zoom
+	lcd.setColor(CUSTOM_COLOR,utils.colors.white)
+	lcd.drawLine(xmin+5,ymin+2*100-7,xmin+5+scaleLen,ymin+2*100-7,SOLID,CUSTOM_COLOR)
+	lcd.drawText(xmin+5,ymin+2*100-21,scaleLabel,SMLSIZE+CUSTOM_COLOR)
+  end	
 end
 
 local function getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
@@ -308,11 +319,11 @@ local function getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,le
   local tile_path = tiles_to_path(conf, tile_x, tile_y, level)
   local onScreen = false
   
-  for x=1,4
+  for x=1,column
   do
-    for y=1,2
+    for y=1,row
     do
-      local idx = 4*(y-1)+x
+      local idx = column*(y-1)+x
       if tiles[idx] == tile_path then
         -- ok it's on screen
         return minX + (x-1)*100 + offset_x, minY + (y-1)*100 + offset_y
@@ -333,6 +344,15 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
   local minX = 0 
   local maxX = minX+4*100
   
+  if conf.enableFullscreen then
+    minY = 0
+	minX = -10
+	maxY = 272
+	maxX = 480
+  else
+
+  end
+
   if telemetry.lat ~= nil and telemetry.lon ~= nil then
     -- position update
     if getTime() - lastPosUpdate > 50 then
@@ -427,11 +447,11 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
     for p=0, math.min(sampleCount-1,conf.mapTrailDots-1)
     do
       if p ~= (sampleCount-1)%conf.mapTrailDots then
-        for x=1,4
+        for x=1,column
         do
-          for y=1,2
+          for y=1,row
           do
-            local idx = 4*(y-1)+x
+            local idx = column*(y-1)+x
             -- check if tile is on screen
             if tiles[idx] == posHistory[p][1] then
               lcd.drawFilledRectangle(minX + (x-1)*100 + posHistory[p][2]-1, minY + (y-1)*100 + posHistory[p][3]-1,3,3,CUSTOM_COLOR)
@@ -530,6 +550,14 @@ local function init(conf,utils,level)
     return
   end
   
+  if conf.enableFullscreen then
+	row = 3
+	column = 5
+  else
+  	row = 2
+	column = 4
+  end
+  
   if level ~= lastZoomLevel then
     utils.clearTable(tiles)
     
@@ -573,19 +601,26 @@ local function draw(myWidget,drawLib,conf,telemetry,status,battery,alarms,frame,
   drawHud(myWidget,drawLib,conf,telemetry,status,battery,utils)
   --]]
   utils.drawTopBar()
-  -- bottom bar
-  lcd.setColor(CUSTOM_COLOR,utils.colors.black)
-  lcd.drawFilledRectangle(0,200+18,480,LCD_H-(200+18),CUSTOM_COLOR)
   -- gps status, draw coordinatyes if good at least once
   lcd.setColor(CUSTOM_COLOR,utils.colors.white)
   if telemetry.lon ~= nil and telemetry.lat ~= nil then
-    lcd.drawText(280,200+18-21,utils.decToDMSFull(telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
-    lcd.drawText(380,200+18-21,utils.decToDMSFull(telemetry.lon,telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
+	if conf.enableFullscreen then
+		lcd.drawText(330,265-21,utils.decToDMSFull(telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
+		lcd.drawText(430,265-21,utils.decToDMSFull(telemetry.lon,telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
+	else
+	    -- bottom bar                        
+		lcd.setColor(CUSTOM_COLOR,utils.colors.black)											
+		lcd.drawFilledRectangle(0,200+18,480,LCD_H-(200+18),CUSTOM_COLOR) 
+		lcd.setColor(CUSTOM_COLOR,utils.colors.white)		
+		lcd.drawText(280,200+18-21,utils.decToDMSFull(telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
+		lcd.drawText(380,200+18-21,utils.decToDMSFull(telemetry.lon,telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
+		  -- custom sensors
+		if customSensors ~= nil then
+			drawCustomSensors(0,customSensors,utils,status)
+		end
+    end 		
   end
-  -- custom sensors
-  if customSensors ~= nil then
-    drawCustomSensors(0,customSensors,utils,status)
-  end
+
 end
 
 local function background(myWidget,conf,telemetry,status,utils)
